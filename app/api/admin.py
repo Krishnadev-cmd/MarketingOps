@@ -32,7 +32,7 @@ def health(db: Session = Depends(get_db)):
     """For load balancers and uptime checks: 503 when the database is unreachable."""
     db_ok = ping()
     body = {"ok": db_ok, "database": "up" if db_ok else "down", "ai_enabled": runtime.drafter.enabled,
-            "ai_model": runtime.settings.gemini_model,
+            "ai_model": runtime.settings.groq_model,
             "channels": channels.connection_status(runtime.settings, db if db_ok else None)}
     return body if db_ok else JSONResponse(status_code=503, content=body)
 

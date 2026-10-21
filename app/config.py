@@ -49,11 +49,11 @@ class Settings(BaseSettings):
     seed_demo_data: bool = False
     demo_password: str = ""   # required when seed_demo_data is on
 
-    # The AI drafter: Google Gemini, authenticated with an API key from the environment.
+    # The AI drafter: Groq, authenticated with an API key from the environment.
     # Disabled or unconfigured = template fallback.
     llm_enabled: bool = True
-    gemini_api_key: str = ""
-    gemini_model: str = "gemini-3.5-flash"
+    groq_api_key: str = ""
+    groq_model: str = "openai/gpt-oss-120b"
 
     # LinkedIn: your app from linkedin.com/developers. An admin clicks "Connect LinkedIn"
     # in the console; the resulting token is stored encrypted in the database, never here.

@@ -40,16 +40,16 @@ class Draft(BaseModel):
 
 class Drafter:
     def __init__(self, settings: Settings) -> None:
-        self.model = settings.gemini_model
+        self.model = settings.groq_model
         self.client = None
-        if settings.llm_enabled and settings.gemini_api_key:
-            # Imported here so tests and template-only deployments never initialize Gemini.
-            from google import genai
-            from google.genai import types
+        if settings.llm_enabled and settings.groq_api_key:
+            # Imported here so tests and template-only deployments never initialize Groq.
+            from groq import Groq
 
-            self.client = genai.Client(
-                api_key=settings.gemini_api_key,
-                http_options=types.HttpOptions(timeout=40_000),
+            self.client = Groq(
+                api_key=settings.groq_api_key,
+                timeout=40.0,
+                max_retries=3,
             )
         else:
             log.info("AI drafting is off: drafts come from channel templates")
@@ -103,23 +103,27 @@ class Drafter:
         return Draft(title=text.title, body=text.body, by_ai=True, note=note, report=report)
 
     def _ask(self, user_prompt: str) -> DraftText:
-        from google.genai import types
-
-        response = self.client.models.generate_content(
-            model=self.model,
-            contents=user_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=prompts.SYSTEM_PROMPT,
+        for attempt in range(2):
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": prompts.SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt},
+                ],
                 temperature=0.4,
-                max_output_tokens=900,
-                response_mime_type="application/json",
-            ),
-        )
-        raw = response.text or ""
-        try:
-            return DraftText.model_validate_json(strip_fences(raw))
-        except ValidationError as exc:
-            raise ValueError(f"Model returned JSON in the wrong shape: {exc}") from exc
+                max_tokens=900,
+                response_format={"type": "json_object"},
+            )
+            raw = response.choices[0].message.content or ""
+            try:
+                return DraftText.model_validate_json(extract_json(raw))
+            except (ValueError, ValidationError) as exc:
+                log.warning("Draft parse failed (attempt %d): %s | raw=%r",
+                            attempt + 1, exc, raw[:500])
+                if attempt == 1:
+                    raise ValueError(f"Model returned JSON in the wrong shape: {exc}") from exc
+
+        raise AssertionError("Draft parsing ended without a result")
 
     def _template(self, brief: str, channel: str, content_type: str, disclaimers: list[str],
                   rules: list[compliance.Rule]) -> Draft:
@@ -143,3 +147,12 @@ def strip_fences(text: str) -> str:
     if text.startswith("```"):
         text = text.split("\n", 1)[-1].rsplit("```", 1)[0]
     return text.strip()
+
+
+def extract_json(text: str) -> str:
+    """Extract the first JSON object when a model adds harmless surrounding text."""
+    text = strip_fences(text)
+    start, end = text.find("{"), text.rfind("}")
+    if start == -1 or end <= start:
+        raise ValueError("Model response did not contain a JSON object")
+    return text[start:end + 1]

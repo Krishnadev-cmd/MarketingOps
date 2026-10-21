@@ -87,7 +87,7 @@ Include each of these disclaimers word for word at the end of the body:
 The brief from the marketing team:
 \"\"\"{brief.strip()}\"\"\"
 
-Return JSON matching this schema, nothing else:
+Return ONLY a JSON object matching this schema. No preface, notes, explanations, or markdown:
 {schema}"""
 
 
@@ -103,5 +103,5 @@ Problems:
 {listed}
 
 Rewrite it so every problem is fixed. Keep the meaning, length and tone otherwise.
-Return JSON matching this schema, nothing else:
+Return ONLY a JSON object matching this schema. No preface, notes, explanations, or markdown:
 {schema}"""

@@ -10,7 +10,7 @@ import os
 # MySQL database: set TEST_DATABASE_URL=mysql+pymysql://.../marketing_ops_test
 os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", "sqlite://")
 os.environ["APP_ENV"] = "development"
-os.environ["LLM_ENABLED"] = "false"        # never call Gemini from the tests
+os.environ["LLM_ENABLED"] = "false"        # never call Groq from the tests
 os.environ["SEED_DEMO_DATA"] = "false"
 os.environ["LINKEDIN_CLIENT_ID"] = ""      # LinkedIn not configured unless a test sets it
 os.environ["LINKEDIN_ORGANIZATION_URN"] = ""
