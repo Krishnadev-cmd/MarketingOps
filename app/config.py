@@ -106,8 +106,8 @@ class Settings(BaseSettings):
                 problems.append("JWT_SECRET must be at least 32 random characters")
             if self.seed_demo_data:
                 problems.append("SEED_DEMO_DATA must be false")
-            if not self.database_url.startswith("mysql"):
-                problems.append("DATABASE_URL must point at MySQL")
+            if not (self.database_url.startswith("postgresql") or self.database_url.startswith("mysql")):
+                problems.append("DATABASE_URL must point at PostgreSQL or MySQL")
             if any(o == "*" or "localhost" in o for o in self.cors_origins):
                 problems.append("CORS_ORIGINS must list your real frontend URL(s) only")
             if not self.token_encryption_key:

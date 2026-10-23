@@ -121,7 +121,7 @@ def test_api_responses_carry_security_headers():
 @pytest.mark.parametrize("override, problem", [
     ({"jwt_secret": ""}, "JWT_SECRET"),
     ({"seed_demo_data": True}, "SEED_DEMO_DATA"),
-    ({"database_url": "sqlite:///x.db"}, "MySQL"),
+    ({"database_url": "sqlite:///x.db"}, "PostgreSQL or MySQL"),
     ({"cors_origins": ["http://localhost:3000"]}, "CORS_ORIGINS"),
     ({"token_encryption_key": ""}, "TOKEN_ENCRYPTION_KEY"),
 ])
