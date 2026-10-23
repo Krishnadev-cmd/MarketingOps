@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "openai/gpt-oss-120b"
 
+    # Public sign-up creates active Creator accounts. Elevated roles remain admin-only.
+    registration_enabled: bool = True
+
     # LinkedIn: your app from linkedin.com/developers. An admin clicks "Connect LinkedIn"
     # in the console; the resulting token is stored encrypted in the database, never here.
     linkedin_client_id: str = ""

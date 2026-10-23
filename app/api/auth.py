@@ -4,16 +4,48 @@ from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import runtime
 from ..database import get_db, utcnow
+from ..enums import Role
 from ..models import User
-from ..schemas import LoginIn, PasswordChangeIn, user_out
+from ..schemas import LoginIn, PasswordChangeIn, RegisterIn, user_out
 from ..security import check_login, current_user, hash_password, make_token, password_problem, verify_password
 from ..services.audit import record
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+@router.post("/register")
+def register(data: RegisterIn, db: Session = Depends(get_db)):
+    """Create a normal Creator account and sign it in immediately."""
+    if not runtime.settings.registration_enabled:
+        raise HTTPException(404, "Registration is currently closed.")
+
+    email = data.email.lower()
+    problem = password_problem(data.password, email)
+    if problem:
+        raise HTTPException(422, problem)
+
+    user = User(
+        name=data.name.strip(),
+        email=email,
+        role=Role.CREATOR,
+        password_hash=hash_password(data.password),
+    )
+    if not user.name:
+        raise HTTPException(422, "Enter your name.")
+    db.add(user)
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "An account with that email already exists.")
+    record(db, user, "user.registered", "user", user.id)
+    db.commit()
+    return {"token": make_token(user), "user": user_out(user)}
 
 
 @router.post("/login")

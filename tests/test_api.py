@@ -37,6 +37,27 @@ def test_wrong_password_gives_one_generic_message(team):
     assert r.status_code == 401 and r.json()["detail"] == "Email or password is wrong."
 
 
+def test_public_registration_creates_creator_and_signs_in():
+    r = client.post("/api/auth/register", json={
+        "name": "New Creator",
+        "email": "new-creator@test.example",
+        "password": "long-secure-password",
+    })
+    assert r.status_code == 200
+    assert r.json()["user"]["role"] == "creator"
+    headers = {"Authorization": "Bearer " + r.json()["token"]}
+    assert client.get("/api/auth/me", headers=headers).status_code == 200
+
+
+def test_public_registration_rejects_duplicate_email(team):
+    r = client.post("/api/auth/register", json={
+        "name": "Another Creator",
+        "email": "creator@test.example",
+        "password": PASSWORD,
+    })
+    assert r.status_code == 409
+
+
 def test_blocked_submit_returns_the_report(as_):
     cid = create(as_["creator"], body="Risk-free returns.")
     r = client.post(f"/api/content/{cid}/submit", headers=as_["creator"])
