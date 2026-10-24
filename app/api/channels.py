@@ -40,11 +40,11 @@ def channel_status(db: Session = Depends(get_db), _: User = Depends(current_user
 
 
 @router.get("/linkedin/connect")
-def linkedin_connect(admin: User = Depends(require(Role.ADMIN))):
+def linkedin_connect(user: User = Depends(require(Role.ADMIN, Role.PUBLISHER))):
     s = runtime.settings
     if not (s.linkedin_client_id and s.linkedin_client_secret):
         raise HTTPException(409, "Add LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET to backend/.env first.")
-    state = jwt.encode({"sub": str(admin.id), "purpose": STATE_PURPOSE, "exp": utcnow() + timedelta(minutes=10)},
+    state = jwt.encode({"sub": str(user.id), "purpose": STATE_PURPOSE, "exp": utcnow() + timedelta(minutes=10)},
                        s.jwt_secret, algorithm="HS256")
     return {"url": linkedin.authorize_url(s, state)}
 
@@ -67,8 +67,8 @@ def linkedin_callback(code: str = "", state: str = "", error: str = "", error_de
         return back(linkedin="error", reason="The connection request expired or was not started here. Try again.")
 
     admin = db.get(User, int(claims["sub"]))
-    if admin is None or not admin.active or admin.role != Role.ADMIN:
-        return back(linkedin="error", reason="Only an active admin can connect LinkedIn.")
+    if admin is None or not admin.active or admin.role not in (Role.ADMIN, Role.PUBLISHER):
+        return back(linkedin="error", reason="Only an active admin or publisher can connect LinkedIn.")
 
     try:
         tokens = linkedin.exchange_code(s, code)

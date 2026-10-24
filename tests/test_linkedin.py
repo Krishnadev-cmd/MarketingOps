@@ -57,8 +57,9 @@ def connect(db, team, scopes="openid profile w_member_social", expires_in_days=6
 
 
 # --- connecting ------------------------------------------------------------------
-def test_only_admins_can_start_connecting(team, fake_linkedin):
-    assert client.get("/api/channels/linkedin/connect", headers=bearer("publisher@test.example")).status_code == 403
+def test_admins_and_publishers_can_start_connecting(team, fake_linkedin):
+    publisher = client.get("/api/channels/linkedin/connect", headers=bearer("publisher@test.example"))
+    assert publisher.status_code == 200
     r = client.get("/api/channels/linkedin/connect", headers=bearer("admin@test.example"))
     q = parse_qs(urlparse(r.json()["url"]).query)
     assert q["client_id"] == ["client-id-1"]
