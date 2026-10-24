@@ -15,7 +15,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # The backend/ folder, so finding .env does not depend on where uvicorn was started.
@@ -92,6 +92,13 @@ class Settings(BaseSettings):
     scheduler_seconds: float = 30
 
     cors_origins: list[str] = ["http://localhost:3000"]
+
+    @field_validator("frontend_url", mode="before")
+    @classmethod
+    def _normalize_frontend_url(cls, value: str) -> str:
+        # Render environment values can be entered with literal surrounding
+        # quotes; they are not part of the URL and must not reach redirects.
+        return value.strip().strip("\"'")
 
     @model_validator(mode="after")
     def _check(self) -> "Settings":

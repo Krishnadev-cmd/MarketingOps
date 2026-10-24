@@ -142,3 +142,9 @@ def test_database_url_is_required():
 def test_good_body_still_passes_checks():
     # Guard: the fixtures used across the suite stay compliant under the starter rules.
     assert "Investments are subject to market risks" in GOOD_BODY
+
+
+def test_frontend_url_strips_literal_environment_quotes():
+    settings = Settings(_env_file=None, database_url="sqlite://",
+                        frontend_url='"https://marketing-ops-frontend.vercel.app"')
+    assert settings.frontend_url == "https://marketing-ops-frontend.vercel.app"

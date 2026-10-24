@@ -9,10 +9,10 @@ from __future__ import annotations
 from collections.abc import Iterator
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, MetaData, create_engine, text
+from sqlalchemy import DateTime, MetaData, create_engine, make_url, text
 from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool, StaticPool
 from sqlalchemy.types import TypeDecorator
 
 from .config import get_settings
@@ -68,6 +68,15 @@ class UTCDateTime(TypeDecorator):
 
 def make_engine(url: str, pool_size: int = 10, max_overflow: int = 10):
     kwargs: dict = {}
+    connect_args: dict = {}
+    if url.startswith("postgresql"):
+        # Supabase's transaction pooler (port 6543) does not preserve a
+        # connection's prepared statements between transactions.
+        connect_args["prepare_threshold"] = None
+        if make_url(url).port == 6543:
+            # Do not retain logical connections across transaction-pooler
+            # assignments; each session gets a fresh pooler connection.
+            kwargs["poolclass"] = NullPool
     if url.startswith("mysql"):
         # MySQL closes idle connections after `wait_timeout` (8h by default).
         # Recycling hourly means the pool never hands out a dead one.
@@ -80,6 +89,8 @@ def make_engine(url: str, pool_size: int = 10, max_overflow: int = 10):
         kwargs["connect_args"] = {"check_same_thread": False}
         if url in ("sqlite://", "sqlite:///:memory:"):
             kwargs["poolclass"] = StaticPool
+    if connect_args:
+        kwargs["connect_args"] = connect_args
     return create_engine(url, pool_pre_ping=True, **kwargs)
 
 
